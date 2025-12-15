@@ -1,6 +1,6 @@
 services:
     backend:
-      container_name: ERP-Api
+      container_name: m-hris
       build:
         context: ./
         dockerfile: ./.docker/php/Dockerfile
