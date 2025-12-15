@@ -1,0 +1,13 @@
+services:
+    backend:
+      container_name: ERP-Api
+      build:
+        context: ./
+        dockerfile: ./.docker/php/Dockerfile
+      restart: always
+      entrypoint: php artisan octane:frankenphp
+      ports:
+        - ${APP_PORT:-8002}:8000
+      volumes:
+        - .:/app
+        - /app/vendor
