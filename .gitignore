@@ -19,9 +19,11 @@
 /storage/*.key
 /storage/pail
 /vendor
+/.docker
 Homestead.json
 Homestead.yaml
 Thumbs.db
+docker.compose.yml
 
 **/caddy
 frankenphp
