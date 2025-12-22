@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers\Api;
 
+use App\Helpers\ApiResponse;
 use App\Http\Controllers\Controller;
 use Exception;
 use Illuminate\Http\Request;
@@ -18,30 +19,40 @@ class AuthController extends Controller
         ]);
 
         if (!Auth::attempt($request->only('nik','password'))) {
-            return response()->json([
-                'message' => 'NIK atau password salah !'
-            ], 401);
+            // return response()->json([
+            //     'message' => 'NIK atau password salah !'
+            // ], 401);
+            return ApiResponse::error('Nik atau password salah !', 401);
         }
 
-        $user = Auth::user();
+        // $user = Auth::user();
         // HAPUS token lama (optional)
-        $user->tokens()->delete();
+        // $user->tokens()->delete();
+
+        $user = $request->user();
 
         // BUAT token baru
-        $token = $user->createToken('mobile_token')->plainTextToken;
+        $token = $user->createToken('mobile-token',['attendance'])->plainTextToken;
 
-        return response()->json([
-            'message' => 'Login berhasil',
-            'data' => [
+        return ApiResponse::success(
+            'Login berhasil !',
+            [
                 'token' => $token,
-                'user' => [
-                    'id' => $user->id,
-                    'nik' => $user->nik,
-                    'name' => $user->name,
-                    'email' => $user->email
-                ]
+                'user' => $user,   
             ]
-        ], 200);
+        );
+        // return response()->json([
+        //     'message' => 'Login berhasil',
+        //     'data' => [
+        //         'token' => $token,
+        //         'user' => [
+        //             'id' => $user->id,
+        //             'nik' => $user->nik,
+        //             'name' => $user->name,
+        //             'email' => $user->email
+        //         ]
+        //     ]
+        // ], 200);
     }
 
     public function logout()
