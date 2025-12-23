@@ -1,22 +1,19 @@
-FROM dunglas/frankenphp:php8.2
+FROM dunglas/frankenphp:php8.3-alpine
 
 ENV SERVER_NAME=":80"
 
-# System dependencies
-RUN apt-get update && apt-get install -y \
+RUN apk update \
+    && apk add --no-cache \
     git \
     unzip \
     curl \
-    gnupg \
-    unixodbc-dev \
     libpng-dev \
-    libjpeg-dev \
-    libfreetype6-dev \
-    libonig-dev \
+    libjpeg-turbo-dev \
+    freetype-dev \
+    oniguruma-dev \
     libzip-dev \
-    && rm -rf /var/lib/apt/lists/*
+    bash 
 
-# PHP extensions
 RUN install-php-extensions \
     gd \
     pcntl \
@@ -30,24 +27,31 @@ RUN install-php-extensions \
     intl \
     exif
 
-# Composer
 COPY --from=composer:latest /usr/bin/composer /usr/bin/composer
 
+# WORKDIR /var/www/html
 WORKDIR /app
 
-# Composer deps (cached layer)
+# Copy ONLY composer files first (cacheable layers)
 COPY composer.json composer.lock ./
+
 RUN COMPOSER_ALLOW_SUPERUSER=1 \
-    composer install --no-dev --prefer-dist --optimize-autoloader
+    composer install --no-dev --prefer-dist --optimize-autoloader --no-scripts
 
-# App source
-COPY . .
+# Copy seluruh source code lain
+COPY --chown=www-data:www-data . .
 
-# Laravel optimization
+# Step 3: Laravel post-autoload
 RUN php artisan package:discover --ansi || true
-RUN php artisan storage:link || true
+
+# Set permissions
 RUN chown -R www-data:www-data storage bootstrap/cache
 
 COPY ./.docker/php/php.ini /usr/local/etc/php/
 
-ENTRYPOINT ["php", "artisan", "octane:frankenphp"]
+# install composer
+RUN curl -sS https://getcomposer.org/installer | php && mv composer.phar /usr/bin/composer
+
+RUN chown -R www-data:www-data storage bootstrap/cache
+
+ENTRYPOINT [ "php", "artisan", "octane:frankenphp" ]
