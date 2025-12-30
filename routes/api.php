@@ -11,7 +11,7 @@ use Illuminate\Support\Facades\Route;
 
 Route::post('/login',[AuthController::class, 'login'])->middleware('throttle:5,1');
 
-Route::middleware('auth:sanctum', 'throttle:5,1', 'abilities:attendance')->group(function () {
+Route::middleware('auth:sanctum', 'throttle:5,1')->group(function () {
 
     Route::get('/user', function (Request $request) {
         return $request->user();

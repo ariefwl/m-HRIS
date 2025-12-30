@@ -15,9 +15,9 @@ class OfficeSeeder extends Seeder
     {
         DB::table('office_locations')->insert([
             'office_name' => 'Kantor Pusat',
-            'latitude' => '-6.991379',
-            'longitude' => '110.339051',
-            'radius_meters' => '20',
+            'latitude' => '-6.991540',
+            'longitude' => '110.339086',
+            'radius_meters' => '50',
             'is_active' => '1'
         ]);
     }
