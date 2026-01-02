@@ -18,7 +18,7 @@ Route::middleware('auth:sanctum', 'throttle:5,1')->group(function () {
     });
     Route::post('/logout', [AuthController::class, 'logout']);
     Route::post('/attendance', [AttendanceController::class, 'store']);
-    // Route::get('/office-location', [AttendanceController::class, 'office']);
+    Route::get('/office-location', [AttendanceController::class, 'office']);
     // Route::post('/attendance/checkin', [AttendanceController::class, 'checkin']);
     // Route::get('/attendance/history', [AttendanceController::class, 'history']);
 });
