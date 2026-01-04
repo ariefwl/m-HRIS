@@ -6,9 +6,10 @@ use App\Http\Controllers\Controller;
 use App\Http\Requests\StoreAttendanceRequest;
 use App\Models\attendance;
 use Illuminate\Http\Request;
-use App\Models\office_locations;
+use App\Models\OfficeLocations;
 use Carbon\Carbon;
 use Illuminate\Http\JsonResponse;
+use Illuminate\Support\Facades\DB;
 
 use function Symfony\Component\Clock\now;
 
@@ -17,7 +18,7 @@ class AttendanceController extends Controller
     // get office location
     public function office(): JsonResponse
     {
-        $office = office_locations::where('is_active', 1)->first();
+        $office = OfficeLocations::where('is_active', 1)->first();
         if (!$office) {
             return response()->json([
                 'status' => false,
@@ -32,9 +33,9 @@ class AttendanceController extends Controller
 
     }
 
-    public function store(StoreAttendanceRequest $request): JsonResponse
+    public function checkin(StoreAttendanceRequest $request): JsonResponse
     {
-        $office = office_locations::where('is_active', 1)->first();
+        $office = OfficeLocations::where('is_active', 1)->first();
         
         if (!$office) {
             return response()->json([
@@ -58,50 +59,12 @@ class AttendanceController extends Controller
             ], 403);
         }
 
-        // validasi absen hari berjalan
-        $today = now()->toDateString();
-        $todayAttendances = attendance::where('user_id', auth()->id())
-            ->whereDate('check_time', $today)
-            ->get();
-
-        $alreadyIn  = $todayAttendances->contains('check_type', 'IN');
-        $alreadyOut = $todayAttendances->contains('check_type', 'OUT');
-
-        if ($request->check_type === 'IN') {
-            if ($alreadyIn) {
-                return response()->json([
-                    'status'  => false,
-                    'message' => 'Anda sudah melakukan absensi masuk hari ini'
-                ], 409);
-            }
-        }
-
-        if ($request->check_type === 'OUT') {
-            if (! $alreadyIn) {
-                return response()->json([
-                    'status'  => false,
-                    'message' => 'Anda belum melakukan absensi masuk'
-                ], 403);
-            }
-
-            if ($alreadyOut) {
-                return response()->json([
-                    'status'  => false,
-                    'message' => 'Anda sudah melakukan absensi pulang hari ini'
-                ], 409);
-            }
-
-            $lastIn = $todayAttendances
-                ->where('check_type', 'IN')
-                ->sortByDesc('check_time')
-                ->first();
-
-            if ($lastIn && now()->lt($lastIn->check_time)) {
-                return response()->json([
-                    'status'  => false,
-                    'message' => 'Waktu absensi tidak valid'
-                ], 422);
-            }
+        // validasi check_type (defensive)
+        if (! in_array($request->check_type, ['IN', 'OUT'])) {
+            return response()->json([
+                'status' => false,
+                'message' => 'Tipe absensi tidak valid'
+            ], 422);
         }
 
         // cek akurasi GPS
@@ -118,29 +81,73 @@ class AttendanceController extends Controller
         // cek perangkat 
         $device = strtolower($request->header('User-Agent'));
 
-        if (str_contains($device, 'emulator') || str_contains($device, 'sdk')) {
+        if (str_contains($device, 'emulator') || str_contains($device, 'android sdk built for')) {
             return response()->json([
                 'status' => false,
                 'message' => 'Absensi dari emulator tidak diizinkan'
             ], 403);
         }
 
-        attendance::create([
-            'user_id' => auth()->id(),
-            'nik' => auth()->user()->nik,
-            'check_type' => $request->check_type,
-            'check_time' => Carbon::now(),
-            'latitude' => $request->latitude,
-            'longitude' => $request->longitude,
-            'accuracy' => $request->accuracy,
-            'distance_from_office' => round($distance),
-            'device_info' => $request->header('User-Agent')
-        ]);
+        return DB::transaction(function () use ($request, $distance) {
 
-        return response()->json([
-            'status' => true,
-            'message' => 'Absensi berhasil'
-        ]);
+            $today = now()->toDateString();
+
+            $todayAttendances = Attendance::where('user_id', auth()->id())
+                ->whereDate('check_time', $today)
+                ->lockForUpdate()
+                ->get();
+
+            $alreadyIn  = $todayAttendances->contains('check_type', 'IN');
+            $alreadyOut = $todayAttendances->contains('check_type', 'OUT');
+
+            if ($request->check_type === 'IN' && $alreadyIn) {
+                return response()->json([
+                    'status'  => false,
+                    'message' => 'Anda sudah melakukan absensi masuk hari ini'
+                ], 409);
+            }
+
+            if ($request->check_type === 'OUT') {
+                if (! $alreadyIn) {
+                    return response()->json([
+                        'status'  => false,
+                        'message' => 'Anda belum melakukan absensi masuk'
+                    ], 403);
+                }
+
+                if ($alreadyOut) {
+                    return response()->json([
+                        'status'  => false,
+                        'message' => 'Anda sudah melakukan absensi pulang hari ini'
+                    ], 409);
+                }
+            }
+
+            // simpan foto selfie
+            // $photoPath = null;
+            // if ($request->hasFile('photo')) {
+            //     $photoPath = $request->file('photo')
+            //         ->store('attendance', 'public');
+            // }
+
+            Attendance::create([
+                'user_id'               => auth()->id(),
+                'nik'                   => auth()->user()->nik,
+                'check_type'            => $request->check_type,
+                'check_time'            => now(),
+                'latitude'              => $request->latitude,
+                'longitude'             => $request->longitude,
+                'accuracy'              => $request->accuracy,
+                'distance_from_office'  => round($distance),
+                'device_info'           => $request->header('User-Agent'),
+                // 'photo_path'            => $photoPath,
+            ]);
+
+            return response()->json([
+                'status'  => true,
+                'message' => 'Absensi berhasil'
+            ]);
+        });
     }
 
     public function history(Request $request)
