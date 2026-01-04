@@ -27,7 +27,7 @@ class StoreAttendanceRequest extends FormRequest
             'latitude'   => 'required|numeric|between:-90,90',
             'longitude'  => 'required|numeric|between:-180,180',
             'accuracy'   => 'nullable|integer|min:0',
-            'is_mock'    => 'required|boolean'
+            // 'is_mock'    => 'required|boolean'
 
             // 'note' => [
             //     Rule::requiredIf(fn () => $this->check_type === 'OUT'),

@@ -68,7 +68,7 @@ class AttendanceController extends Controller
         }
 
         // cek akurasi GPS
-        $maxAccuracy = 30;
+        $maxAccuracy = 100;
 
         if ($request->accuracy && $request->accuracy > $maxAccuracy) {
             return response()->json([
@@ -90,7 +90,7 @@ class AttendanceController extends Controller
 
         return DB::transaction(function () use ($request, $distance) {
 
-            $today = now()->toDateString();
+            $today = today();
 
             $todayAttendances = Attendance::where('user_id', auth()->id())
                 ->whereDate('check_time', $today)
