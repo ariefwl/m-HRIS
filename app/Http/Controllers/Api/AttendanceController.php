@@ -7,6 +7,7 @@ use App\Http\Requests\StoreAttendanceRequest;
 use App\Models\attendance;
 use Illuminate\Http\Request;
 use App\Models\OfficeLocations;
+use Carbon\Carbon;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Support\Facades\DB;
 
@@ -151,12 +152,18 @@ class AttendanceController extends Controller
 
     public function today(Request $request)
     {
-        $attendance = attendance::where('user_id',$request->user()->id)
-              ->whereDate('created_at', now())
-              ->first();
+        // logger('NOW APP', [Carbon::now()->toDateTimeString()]);
+        // logger('NOW DB', [DB::select('select GETDATE() as db_time')[0]->db_time]);
+        $start = Carbon::today('Asia/Jakarta')->utc();
+        $end   = Carbon::tomorrow('Asia/Jakarta')->utc();
+
+        $attendance = Attendance::where('user_id', auth()->id())
+            ->whereBetween('check_time', [$start, $end])
+            ->get();
+            
         return response()->json([
-            'check_in' => (bool) $attendance?->check_in_time,
-            'check_out' => (bool) $attendance?->check_out_time,
+            'check_in'  => $attendance->contains('check_type', 'IN'),
+            'check_out' => $attendance->contains('check_type', 'OUT'),
         ]);
     }
 
