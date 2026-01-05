@@ -7,7 +7,6 @@ use App\Http\Requests\StoreAttendanceRequest;
 use App\Models\attendance;
 use Illuminate\Http\Request;
 use App\Models\OfficeLocations;
-use Carbon\Carbon;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Support\Facades\DB;
 
@@ -59,7 +58,7 @@ class AttendanceController extends Controller
             ], 403);
         }
 
-        // validasi check_type (defensive)
+        // validasi check_type
         if (! in_array($request->check_type, ['IN', 'OUT'])) {
             return response()->json([
                 'status' => false,
@@ -148,6 +147,17 @@ class AttendanceController extends Controller
                 'message' => 'Absensi berhasil'
             ]);
         });
+    }
+
+    public function today(Request $request)
+    {
+        $attendance = attendance::where('user_id',$request->user()->id)
+              ->whereDate('created_at', now())
+              ->first();
+        return response()->json([
+            'check_in' => (bool) $attendance?->check_in_time,
+            'check_out' => (bool) $attendance?->check_out_time,
+        ]);
     }
 
     public function history(Request $request)
