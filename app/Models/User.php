@@ -27,6 +27,11 @@ class User extends Authenticatable
         'updated_at'
     ];
 
+    public function employee()
+    {
+        return $this->hasOne(Employee::class, 'NIK', 'nik');
+    }
+
     /**
      * The attributes that should be hidden for serialization.
      *
