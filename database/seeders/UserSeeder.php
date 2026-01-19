@@ -29,6 +29,14 @@ class UserSeeder extends Seeder
                 'nik' => '0719',
                 'created_at' => now(),
                 'updated_at' => now(),
+            ],
+            [
+                'name' => 'Kelik Sudjianto',
+                'email' => 'kelik@email.com',
+                'password' => '$2y$12$c2MzyDqft/C8UcqCpJ8G9.uxEf7zWIeHYQdWDXuyAyCLW1pvevuGW',
+                'nik' => '0627',
+                'created_at' => now(),
+                'updated_at' => now(),
             ]
         ]
         );
